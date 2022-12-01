@@ -1,4 +1,5 @@
 import Data.List (sort)
+
 parseInputFile :: [String] -> [[Int]]
 parseInputFile =
   foldr
