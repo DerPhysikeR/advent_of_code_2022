@@ -1,3 +1,4 @@
+import Data.List (sort)
 parseInputFile :: [String] -> [[Int]]
 parseInputFile =
   foldr
@@ -10,4 +11,6 @@ parseInputFile =
 main :: IO ()
 main = do
   content <- parseInputFile . lines <$> readFile "input.txt"
-  print $ maximum $ map sum content
+  let calories = map sum content
+  print $ maximum calories
+  print $ sum . take 3 . reverse . sort $ calories
