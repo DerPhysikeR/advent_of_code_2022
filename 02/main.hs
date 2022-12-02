@@ -1,25 +1,28 @@
-data RPS = Rock | Paper | Scissors deriving (Show, Eq)
-data GameState = Lose | Win | Draw deriving (Show, Eq)
+data RPS = Rock | Paper | Scissors deriving (Show, Eq, Bounded, Enum)
+data GameState = Lose | Draw | Win deriving (Show, Eq)
+
+class (Eq a, Enum a, Bounded a) => CyclicEnum a where
+    cpred :: a -> a
+    cpred x
+        | x == minBound = maxBound
+        | otherwise = pred x
+    csucc :: a -> a
+    csucc x
+        | x == maxBound = minBound
+        | otherwise = succ x
+
+instance CyclicEnum RPS
 
 play :: RPS -> RPS -> GameState
-play Rock Rock = Draw
-play Rock Paper = Win
-play Rock Scissors = Lose
-play Paper Rock = Lose
-play Paper Paper = Draw
-play Paper Scissors = Win
-play Scissors Rock = Win
-play Scissors Paper = Lose
-play Scissors Scissors = Draw
+play p1 p2
+    | csucc p1 == p2 = Win
+    | cpred p1 == p2 = Lose
+    | otherwise = Draw
 
 whatToPlay :: RPS -> GameState -> RPS
-whatToPlay Rock Lose = Scissors
-whatToPlay Rock Win = Paper
-whatToPlay Paper Lose = Rock
-whatToPlay Paper Win = Scissors
-whatToPlay Scissors Lose = Paper
-whatToPlay Scissors Win = Rock
+whatToPlay p1 Lose = cpred p1
 whatToPlay p1 Draw = p1
+whatToPlay p1 Win = csucc p1
 
 parseLetter :: Char -> RPS
 parseLetter 'A' = Rock
