@@ -1,24 +1,24 @@
 data RPS = Rock | Paper | Scissors deriving (Show, Eq)
-data GameState = Win1 | Win2 | Draw deriving (Show, Eq)
+data GameState = Lose | Win | Draw deriving (Show, Eq)
 
 play :: RPS -> RPS -> GameState
 play Rock Rock = Draw
-play Rock Paper = Win2
-play Rock Scissors = Win1
-play Paper Rock = Win1
+play Rock Paper = Win
+play Rock Scissors = Lose
+play Paper Rock = Lose
 play Paper Paper = Draw
-play Paper Scissors = Win2
-play Scissors Rock = Win2
-play Scissors Paper = Win1
+play Paper Scissors = Win
+play Scissors Rock = Win
+play Scissors Paper = Lose
 play Scissors Scissors = Draw
 
 whatToPlay :: RPS -> GameState -> RPS
-whatToPlay Rock Win1 = Scissors
-whatToPlay Rock Win2 = Paper
-whatToPlay Paper Win1 = Rock
-whatToPlay Paper Win2 = Scissors
-whatToPlay Scissors Win1 = Paper
-whatToPlay Scissors Win2 = Rock
+whatToPlay Rock Lose = Scissors
+whatToPlay Rock Win = Paper
+whatToPlay Paper Lose = Rock
+whatToPlay Paper Win = Scissors
+whatToPlay Scissors Lose = Paper
+whatToPlay Scissors Win = Rock
 whatToPlay p1 Draw = p1
 
 parseLetter :: Char -> RPS
@@ -30,9 +30,9 @@ parseLetter 'Y' = Paper
 parseLetter 'Z' = Scissors
 
 parseLetter2 :: Char -> GameState
-parseLetter2 'X' = Win1
+parseLetter2 'X' = Lose
 parseLetter2 'Y' = Draw
-parseLetter2 'Z' = Win2
+parseLetter2 'Z' = Win
 
 parseLetters :: String -> (RPS, RPS)
 parseLetters [p1, _, p2] = (parseLetter p1, parseLetter p2)
@@ -46,9 +46,9 @@ scoreRPS Paper = 2
 scoreRPS Scissors = 3
 
 scoreGameState :: GameState -> Int
-scoreGameState Win1 = 0
+scoreGameState Lose = 0
 scoreGameState Draw = 3
-scoreGameState Win2 = 6
+scoreGameState Win = 6
 
 score :: (RPS, RPS) -> Int
 score (p1, p2) = scoreRPS p2 + scoreGameState (play p1 p2)
