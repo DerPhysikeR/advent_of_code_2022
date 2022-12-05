@@ -5,7 +5,7 @@ import Data.Text.IO qualified as IO
 import Data.Sequence (Seq(..))
 import Data.Sequence qualified as S
 import Data.Char (isSpace)
-import Data.List (transpose)
+import Data.List (transpose, foldl')
 import Data.Maybe (catMaybes)
 
 type Stack = [Char]
@@ -52,5 +52,5 @@ moveMultipleBoxes s (Move count from to) = removed
 main :: IO ()
 main = do
     (stacks, moves) <- parseInput <$> IO.readFile "input.txt"
-    print $ head <$> foldl applyMove stacks moves
-    print $ head <$> foldl moveMultipleBoxes stacks moves
+    print $ head <$> foldl' applyMove stacks moves
+    print $ head <$> foldl' moveMultipleBoxes stacks moves
