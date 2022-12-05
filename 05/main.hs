@@ -39,18 +39,17 @@ moveBox from to s = S.update to (head oldStack : newStack) removed
           newStack = S.index s to
           removed = S.update from (tail oldStack) s
 
-applyMove :: Stacks -> Move -> Stacks
-applyMove s (Move count from to) = iterate (moveBox from to) s !! count
+moveBoxes :: Stacks -> Move -> Stacks
+moveBoxes s (Move count from to) = iterate (moveBox from to) s !! count
 
 moveMultipleBoxes :: Stacks -> Move -> Stacks
-moveMultipleBoxes s (Move count from to) = removed
+moveMultipleBoxes s (Move count from to) = S.update from (drop count oldStack) added
     where oldStack = S.index s from
           newStack = S.index s to
           added = S.update to (take count oldStack ++ newStack) s
-          removed = S.update from (drop count oldStack) added
 
 main :: IO ()
 main = do
     (stacks, moves) <- parseInput <$> IO.readFile "input.txt"
-    print $ head <$> foldl' applyMove stacks moves
+    print $ head <$> foldl' moveBoxes stacks moves
     print $ head <$> foldl' moveMultipleBoxes stacks moves
