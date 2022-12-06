@@ -1,9 +1,7 @@
 import Control.Monad (unless)
 import Data.Maybe (isNothing)
-type Datastream = [Char]
-type Index = Int
 
-allDifferent :: Datastream -> Bool
+allDifferent :: String -> Bool
 allDifferent [] = True
 allDifferent (x:xs) = x `notElem` xs && allDifferent xs
 
@@ -12,7 +10,7 @@ takeMaybe n xs = if len < n then Nothing else Just taken
     where len = length taken
           taken = take n xs
 
-findFirstInstanceOfNDifferent :: Int -> Int -> Datastream -> Maybe Int
+findFirstInstanceOfNDifferent :: Int -> Int -> String -> Maybe Int
 findFirstInstanceOfNDifferent n i xs = case takeMaybe n xs of
     Nothing -> Nothing
     Just ys -> if allDifferent ys then Just (i + n - 1) else findFirstInstanceOfNDifferent n (i + 1) (tail xs)
