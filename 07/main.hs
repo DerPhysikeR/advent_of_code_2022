@@ -47,4 +47,7 @@ getAllDirectorySizes d@(Directory m) = sizeOf d : concatMap getAllDirectorySizes
 main :: IO ()
 main = do
     (_, filemap) <- foldl' parseLine ([], Directory M.empty) . lines <$> readFile "input.txt"
-    print $ sum $ filter (<= 100000) $ getAllDirectorySizes filemap
+    let allDirectorySizes = getAllDirectorySizes filemap
+    print $ sum $ filter (<= 100000) allDirectorySizes
+    let necessarySpaceToDelete = 30000000 - (70000000 - sizeOf filemap)
+    print $ minimum $ filter (> necessarySpaceToDelete) allDirectorySizes
