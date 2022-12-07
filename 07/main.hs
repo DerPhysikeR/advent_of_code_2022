@@ -2,23 +2,46 @@ import Data.Map qualified as M
 import Data.List (foldl')
 import Data.Char (isDigit)
 
-data FileObject = File {name :: String, size :: Int} | Directory {name :: String} deriving (Show)
+data FileTree = File {size :: Int} | Directory (M.Map String FileTree) deriving (Show)
 type Path = [String]
-type State = (Path, M.Map Path [FileObject])
+type State = (Path, FileTree)
 
-parseFile :: String -> FileObject
-parseFile s = File (tail $ dropWhile isDigit s) (read $ takeWhile isDigit s)
+unionDirs :: FileTree -> FileTree -> FileTree
+unionDirs (Directory m1) (Directory m2) = Directory (M.union m1 m2)
+
+insertInFileTree :: Path -> FileTree -> FileTree -> FileTree
+insertInFileTree [name] f@(File _) (Directory m) = Directory (M.insert name f m)
+insertInFileTree [name] d@(Directory _) (Directory m) = Directory (M.insertWith unionDirs name d m)
+insertInFileTree (p:ps) toInsert ft@(Directory m) = case M.lookup p m of
+    Just ft -> Directory (M.insertWith unionDirs p (insertInFileTree ps toInsert ft) m)
+    Nothing -> Directory (M.insert p (insertInFileTree ps toInsert ft) m)
+
+sizeOf :: FileTree -> Int
+sizeOf (File size) = size
+sizeOf (Directory m) = sum $ map (\(_, ft) -> sizeOf ft) $ M.toList m
+
+joinPath :: Path -> String
+joinPath = concatMap ("/" ++)
+
+showFiles :: Path -> FileTree -> String
+showFiles p (File size) = joinPath p ++ " " ++ show size ++ "\n"
+showFiles p (Directory m) = concatMap (\(name, ft) -> showFiles (p ++ [name]) ft) $ M.toList m
+
+parseFile :: String -> (String, FileTree)
+parseFile s = (tail $ dropWhile isDigit s, File $ read $ takeWhile isDigit s)
 
 parseLine :: State -> String -> State
-parseLine (p, m) ('$':' ':'c':'d':' ':dir)
-    | dir == "/" = (["/"], m)
-    | dir == ".." = (init p, m)
-    | otherwise = (p ++ [dir], m)
+parseLine (p, ft) ('$':' ':'c':'d':' ':dir)
+    | dir == "/" = ([], ft)
+    | dir == ".." = (init p, ft)
+    | otherwise = (p ++ [dir], ft)
 parseLine s ('$':' ':'l':'s':_) = s
-parseLine (p, m) ('d':'i':'r':' ':dir) = (p, M.insertWith (++) p [Directory dir] m)
-parseLine (p, m) line = (p, M.insertWith (++) p [parseFile line] m)
+parseLine (p, ft) ('d':'i':'r':' ':dir) = (p, insertInFileTree (p ++ [dir]) (Directory M.empty) ft)
+parseLine (p, ft) line = (p, insertInFileTree (p ++ [name]) file ft)
+    where (name, file) = parseFile line
 
 main :: IO ()
 main = do
-    (_, filemap) <- foldl' parseLine ([""], M.empty) . lines <$> readFile "test_input.txt"
-    print filemap
+    (_, filemap) <- foldl' parseLine ([], Directory M.empty) . lines <$> readFile "input.txt"
+    print $ sizeOf filemap
+    putStr $ showFiles [] filemap
