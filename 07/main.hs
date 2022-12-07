@@ -40,8 +40,11 @@ parseLine (p, ft) ('d':'i':'r':' ':dir) = (p, insertInFileTree (p ++ [dir]) (Dir
 parseLine (p, ft) line = (p, insertInFileTree (p ++ [name]) file ft)
     where (name, file) = parseFile line
 
+getAllDirectorySizes :: FileTree -> [Int]
+getAllDirectorySizes (File _) = []
+getAllDirectorySizes d@(Directory m) = sizeOf d : concatMap getAllDirectorySizes [ft | (_, ft) <- M.toList m]
+
 main :: IO ()
 main = do
     (_, filemap) <- foldl' parseLine ([], Directory M.empty) . lines <$> readFile "input.txt"
-    print $ sizeOf filemap
-    putStr $ showFiles [] filemap
+    print $ sum $ filter (<= 100000) $ getAllDirectorySizes filemap
