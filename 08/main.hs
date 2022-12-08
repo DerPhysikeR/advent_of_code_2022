@@ -48,11 +48,20 @@ lookIntoForrestFromAllDirections maxrc treemap = mconcat $ map S.fromList [fromL
           fromRight = concat [lookIntoForrest c left treemap | (c, _) <- rightColumn]
           fromBottom = concat [lookIntoForrest c up treemap | (c, _) <- bottomRow]
 
+takeWhileInclusive :: (a -> Bool) -> [a] -> [a]
+takeWhileInclusive f [] = []
+takeWhileInclusive f [x] = [x]
+takeWhileInclusive f (x:xs) = if f x then x : takeWhileInclusive f xs else [x]
+
+calcScenicScore :: TreeMap -> Tree -> Int
+calcScenicScore treemap tree@(coords, height) = product viewingDistances
+    where viewingDistance direction = takeWhileInclusive (\tree@(c, h) -> h < height) (tail $ lookInto coords direction treemap)
+          viewingDistances = map (length . viewingDistance) [right, up, left, down]
+
 main :: IO ()
 main = do
     grid <- parseInput <$> readFile "input.txt"
     let treemap = gridToTrees grid
-    print treemap
     let maxrc = (subtract 1 $ length grid, subtract 1 $ length $ head grid)
-    print $ lookIntoForrestFromAllDirections maxrc treemap
     print $ length $ lookIntoForrestFromAllDirections maxrc treemap
+    print $ maximum $ map (calcScenicScore treemap) (M.toList treemap)
