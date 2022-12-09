@@ -29,7 +29,7 @@ toCoords [Move d count] = replicate count (moves !! fromEnum d)
 toCoords ((Move d count):ms) = replicate count (moves !! fromEnum d) ++ toCoords ms
 
 moveTail :: Rope -> Rope
-moveTail r@(h@(hx, hy):t@(tx, ty):_)
+moveTail r@(h:t:_)
     | isTouching h t = r
     | otherwise = [h, newT]
         where allNewTs = map (move t) moves
@@ -49,11 +49,12 @@ moveLongTail (h:t:rs) = h : moveLongTail (newTail:rs)
 moveLongRope :: Rope -> Coords -> Rope
 moveLongRope (h:rs) delta = moveLongTail (move h delta : rs)
 
+solve :: Rope -> [Coords] -> (Rope, S.Set Coords)
+solve initialRope = foldl' fun (initialRope, S.singleton (last initialRope))
+    where fun (rope, visitedPositions) m = let newRope = moveLongRope rope m in (newRope, S.insert (last newRope) visitedPositions)
+
 main :: IO ()
 main = do
     moves :: [Coords] <- toCoords . map (\line -> read ("Move " ++ line)) . lines <$> readFile "input.txt"
-    let (finalRope, visitedPositions) = foldl' (\(rope, visitedPositions) m -> let newRope@(_:t:_) = moveRope rope m in (newRope, S.insert t visitedPositions)) ([(0, 0), (0, 0)], S.singleton (0, 0)) moves
-    print $ length visitedPositions
-    let (finalRope, visitedPositions) = foldl' (\(rope, visitedPositions) m -> let newRope = moveLongRope rope m in (newRope, S.insert (last newRope) visitedPositions)) (replicate 10 (0, 0), S.singleton (0, 0)) moves
-    print $ length visitedPositions
-
+    print $ length $ snd  $ solve (replicate 2 (0, 0)) moves
+    print $ length $ snd  $ solve (replicate 10 (0, 0)) moves
