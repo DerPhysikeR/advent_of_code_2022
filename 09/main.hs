@@ -4,7 +4,7 @@ import Data.Foldable (Foldable(foldl'))
 type Coords = (Int, Int)
 data Direction = R | U | L | D deriving (Show, Read, Bounded, Enum)
 data Move = Move Direction Int deriving (Show, Read)
-data Rope = Rope {rhead :: Coords, rtail :: Coords} deriving (Show)
+type Rope = [Coords]
 
 calcDistance :: Coords -> Coords -> Int
 calcDistance c1@(x1, y1) c2@(x2, y2)
@@ -29,20 +29,20 @@ toCoords [Move d count] = replicate count (moves !! fromEnum d)
 toCoords ((Move d count):ms) = replicate count (moves !! fromEnum d) ++ toCoords ms
 
 moveTail :: Rope -> Rope
-moveTail r@(Rope h@(hx, hy) t@(tx, ty))
+moveTail r@(h@(hx, hy):t@(tx, ty):_)
     | isTouching h t = r
-    | otherwise = Rope h newT
+    | otherwise = [h, newT]
         where allNewTs = map (move t) moves
               distances = map (calcDistance h) allNewTs
               minDistance = minimum distances
               newT = fst $ head $ filter (\(_, d) -> d == minDistance) (zip allNewTs distances)
 
 moveRope :: Rope -> Coords -> Rope
-moveRope (Rope h t) delta = moveTail (Rope (move h delta) t)
+moveRope (h:t:_) delta = moveTail [move h delta, t]
 
 main :: IO ()
 main = do
     moves :: [Coords] <- toCoords . map (\line -> read ("Move " ++ line)) . lines <$> readFile "input.txt"
-    let (finalRope, visitedPositions) = foldl' (\(rope, visitedPositions) m -> let newRope@(Rope _ t) = moveRope rope m in (newRope, S.insert t visitedPositions)) (Rope (0, 0) (0, 0), S.singleton (0, 0)) moves
+    let (finalRope, visitedPositions) = foldl' (\(rope, visitedPositions) m -> let newRope@(_:t:_) = moveRope rope m in (newRope, S.insert t visitedPositions)) ([(0, 0), (0, 0)], S.singleton (0, 0)) moves
     print $ length visitedPositions
 
