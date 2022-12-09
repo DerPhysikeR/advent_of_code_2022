@@ -40,9 +40,20 @@ moveTail r@(h@(hx, hy):t@(tx, ty):_)
 moveRope :: Rope -> Coords -> Rope
 moveRope (h:t:_) delta = moveTail [move h delta, t]
 
+moveLongTail :: Rope -> Rope
+moveLongTail [] = []
+moveLongTail [x] = [x]
+moveLongTail (h:t:rs) = h : moveLongTail (newTail:rs)
+    where (_:newTail:_) = moveTail [h, t]
+
+moveLongRope :: Rope -> Coords -> Rope
+moveLongRope (h:rs) delta = moveLongTail (move h delta : rs)
+
 main :: IO ()
 main = do
     moves :: [Coords] <- toCoords . map (\line -> read ("Move " ++ line)) . lines <$> readFile "input.txt"
     let (finalRope, visitedPositions) = foldl' (\(rope, visitedPositions) m -> let newRope@(_:t:_) = moveRope rope m in (newRope, S.insert t visitedPositions)) ([(0, 0), (0, 0)], S.singleton (0, 0)) moves
+    print $ length visitedPositions
+    let (finalRope, visitedPositions) = foldl' (\(rope, visitedPositions) m -> let newRope = moveLongRope rope m in (newRope, S.insert (last newRope) visitedPositions)) (replicate 10 (0, 0), S.singleton (0, 0)) moves
     print $ length visitedPositions
 
