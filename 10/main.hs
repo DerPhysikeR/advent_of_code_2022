@@ -28,5 +28,5 @@ main = do
     let indexedResult = zipWith (\i c -> (i, c, i * c)) [1..] results
     let result = filter (\(i, _, _) -> i `elem` cycles) indexedResult
     print $ sum $ map (\(_, _, x) -> x) result
-    let pixels = map (\(i, c, _)-> let pixelIdx = mod (i - 1) 40 in if pixelIdx `elem` [c-1, c, c+1] then '#' else '.') (take 240 indexedResult)
+    let pixels = map (\(i, c, _)-> let pixelIdx = mod (i - 1) 40 in if pixelIdx `elem` [c-1, c, c+1] then '█' else ' ') (take 240 indexedResult)
     putStrLn $ addLineBreaks 40 pixels
