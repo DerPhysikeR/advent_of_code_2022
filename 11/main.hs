@@ -2,11 +2,9 @@
 import Data.Text qualified as T
 import Data.Text.IO qualified as TIO
 import Data.Sequence qualified as S
-import Debug.Trace (traceShow)
 import Data.Foldable (Foldable(foldl'), toList)
 import Data.Foldable qualified as F
 import Data.List (sort)
-tr x = traceShow x x
 
 data Monkey = Monkey {items :: [Int], operation :: Int -> Int, throwTo :: Int -> Int, activity :: Int}
 type Monkeys = S.Seq Monkey
@@ -30,47 +28,37 @@ parseMonkey t = Monkey items operation (\x -> if (x `mod` divisor) == 0 then tru
           trueMonkey = ru . last $ T.splitOn " " ifTrueLine
           falseMonkey = ru . last $ T.splitOn " " ifFalseLine
 
-monkeyThrow :: Int -> Monkeys -> Monkeys
-monkeyThrow idx monkeys = case S.index monkeys idx of
+monkeyThrow :: (Int -> Int) -> Int -> Monkeys -> Monkeys
+monkeyThrow calcWorryLevel idx monkeys = case S.index monkeys idx of
     Monkey [] _ _ _ -> monkeys
     Monkey (item:items) operation throwTo activity -> monkeysItemCaught
         where monkeysItemThrown = S.update idx (Monkey items operation throwTo (activity + 1)) monkeys
-              worryLevel = div (operation item) 3
+              worryLevel = calcWorryLevel (operation item)
               throwToIdx = throwTo worryLevel
               catchingMonkey@(Monkey it o tt a) = S.index monkeysItemThrown throwToIdx
               monkeysItemCaught = S.update throwToIdx (Monkey (it ++ [worryLevel]) o tt a) monkeysItemThrown
 
-monkeyTurn :: Int -> Monkeys -> Monkeys
-monkeyTurn idx monkeys = case S.index monkeys idx of
+monkeyTurn :: (Int -> Int) -> Monkeys -> Int -> Monkeys
+monkeyTurn calcWorryLevel monkeys idx = case S.index monkeys idx of
     Monkey [] _ _ _ -> monkeys
-    _ -> monkeyTurn idx (monkeyThrow idx monkeys)
+    _ -> monkeyTurn calcWorryLevel (monkeyThrow calcWorryLevel idx monkeys) idx
 
-monkeyRound :: Monkeys -> Monkeys
-monkeyRound monkeys = foldl' (flip monkeyTurn) monkeys [0..length monkeys - 1]
+monkeyRound :: (Int -> Int) -> Monkeys -> Monkeys
+monkeyRound calcWorryLevel monkeys = foldl' (monkeyTurn calcWorryLevel) monkeys [0..length monkeys - 1]
 
-longMonkeyThrow :: Int -> Monkeys -> Monkeys
-longMonkeyThrow idx monkeys = case S.index monkeys idx of
-    Monkey [] _ _ _ -> monkeys
-    Monkey (item:items) operation throwTo activity -> monkeysItemCaught
-        where monkeysItemThrown = S.update idx (Monkey items operation throwTo (activity + 1)) monkeys
-              worryLevel = mod (operation item) (2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23)
-              throwToIdx = throwTo worryLevel
-              catchingMonkey@(Monkey it o tt a) = S.index monkeysItemThrown throwToIdx
-              monkeysItemCaught = S.update throwToIdx (Monkey (it ++ [worryLevel]) o tt a) monkeysItemThrown
+calcWorryLevelPart1 x = div x 3
+calcWorryLevelPart2 x = mod x (2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23)
 
-longMonkeyTurn :: Int -> Monkeys -> Monkeys
-longMonkeyTurn idx monkeys = case S.index monkeys idx of
-    Monkey [] _ _ _ -> monkeys
-    _ -> longMonkeyTurn idx (longMonkeyThrow idx monkeys)
+solve :: (Int -> Int) -> Int -> Monkeys -> Monkeys
+solve calcWorryLevel rounds monkeys = last $ take rounds $ iterate (monkeyRound calcWorryLevel) monkeys
 
-longMonkeyRound :: Monkeys -> Monkeys
-longMonkeyRound monkeys = foldl' (flip longMonkeyTurn) monkeys [0..length monkeys - 1]
+calcMonkeyBusiness :: Monkeys -> Int
+calcMonkeyBusiness monkeys = product $ take 2 $ reverse $ sort $ map (\(Monkey _ _ _ activity) -> activity) (F.toList monkeys)
 
 main :: IO ()
 main = do
     monkeys <- S.fromList . map parseMonkey . T.splitOn "\n\n" <$> TIO.readFile "input.txt"
-    let finishedMonkeys = last $ take 21 $ iterate monkeyRound monkeys
-    print $ product $ take 2 $ reverse $ sort $ map (\(Monkey _ _ _ activity) -> activity) (F.toList finishedMonkeys)
-    let finishedMonkeys = last $ take 10001 $ iterate longMonkeyRound monkeys
-    print finishedMonkeys
-    print $ product $ take 2 $ reverse $ sort $ map (\(Monkey _ _ _ activity) -> activity) (F.toList finishedMonkeys)
+    let finishedMonkeys = solve calcWorryLevelPart1 21 monkeys
+    print $ calcMonkeyBusiness finishedMonkeys
+    let finishedMonkeys = solve calcWorryLevelPart2 10001 monkeys
+    print $ calcMonkeyBusiness finishedMonkeys
