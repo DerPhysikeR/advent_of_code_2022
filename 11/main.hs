@@ -12,7 +12,7 @@ data Monkey = Monkey {items :: [Int], operation :: Int -> Int, throwTo :: Int ->
 type Monkeys = S.Seq Monkey
 
 instance Show Monkey where
-    show (Monkey items operation throwTo activity) = "Monkey " ++ show items ++ " " ++ show activity
+    show (Monkey items operation throwTo activity) = "Monkey " ++ show activity
 
 parseMonkey :: T.Text -> Monkey
 parseMonkey t = Monkey items operation (\x -> if (x `mod` divisor) == 0 then trueMonkey else falseMonkey) 0
@@ -48,9 +48,29 @@ monkeyTurn idx monkeys = case S.index monkeys idx of
 monkeyRound :: Monkeys -> Monkeys
 monkeyRound monkeys = foldl' (flip monkeyTurn) monkeys [0..length monkeys - 1]
 
+longMonkeyThrow :: Int -> Monkeys -> Monkeys
+longMonkeyThrow idx monkeys = case S.index monkeys idx of
+    Monkey [] _ _ _ -> monkeys
+    Monkey (item:items) operation throwTo activity -> monkeysItemCaught
+        where monkeysItemThrown = S.update idx (Monkey items operation throwTo (activity + 1)) monkeys
+              worryLevel = mod (operation item) (2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23)
+              throwToIdx = throwTo worryLevel
+              catchingMonkey@(Monkey it o tt a) = S.index monkeysItemThrown throwToIdx
+              monkeysItemCaught = S.update throwToIdx (Monkey (it ++ [worryLevel]) o tt a) monkeysItemThrown
+
+longMonkeyTurn :: Int -> Monkeys -> Monkeys
+longMonkeyTurn idx monkeys = case S.index monkeys idx of
+    Monkey [] _ _ _ -> monkeys
+    _ -> longMonkeyTurn idx (longMonkeyThrow idx monkeys)
+
+longMonkeyRound :: Monkeys -> Monkeys
+longMonkeyRound monkeys = foldl' (flip longMonkeyTurn) monkeys [0..length monkeys - 1]
+
 main :: IO ()
 main = do
     monkeys <- S.fromList . map parseMonkey . T.splitOn "\n\n" <$> TIO.readFile "input.txt"
-    print monkeys
     let finishedMonkeys = last $ take 21 $ iterate monkeyRound monkeys
+    print $ product $ take 2 $ reverse $ sort $ map (\(Monkey _ _ _ activity) -> activity) (F.toList finishedMonkeys)
+    let finishedMonkeys = last $ take 10001 $ iterate longMonkeyRound monkeys
+    print finishedMonkeys
     print $ product $ take 2 $ reverse $ sort $ map (\(Monkey _ _ _ activity) -> activity) (F.toList finishedMonkeys)
