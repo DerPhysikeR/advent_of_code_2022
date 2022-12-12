@@ -72,7 +72,7 @@ def dijkstra(maze, to_check, predecessors):
         for neighbor in neighbors:
             if neighbor == maze.end:
                 predecessors[maze.end] = position
-                return reconstruct_path(predecessors, maze.end)
+                return predecessors, reconstruct_path(predecessors, maze.end)
             if to_check[neighbor] == "infinity" or to_check[neighbor] > distance + 1:
                 to_check[neighbor] = distance + 1
                 predecessors[neighbor] = position
@@ -86,6 +86,63 @@ def solve_maze(maze):
     return dijkstra(maze, to_check, predecessors)
 
 
+def get_valid_neighbors_2(maze, position):
+    height = ord(maze.height_map[position])
+    neighbors = get_neighbors(position)
+    return set(
+        n
+        for n in neighbors
+        if n in maze.height_map and ord(maze.height_map[n]) >= height - 1
+    )
+
+
+def dijkstra2(maze, to_check, predecessors):
+    # while set(to_check.values()) > set(["infinity"]):
+    # all_as = set([k for k, v in maze.height_map.items() if v == "a"])
+    # while len(predecessors) < len(maze.height_map) - 4000:
+    # while all_as.issubset(predecessors):
+    # while set(predecessors).issubset(all_as):
+    # while len(all_as.intersection(predecessors)) < len(all_as):
+    while len({v: k for k, v in to_check.items()}) > 1:
+        position, distance = popmin(to_check)
+        neighbors = get_valid_neighbors_2(maze, position).intersection(to_check)
+        for neighbor in neighbors:
+            # if neighbor == maze.end:
+            #     predecessors[maze.end] = position
+            #     return predecessors, reconstruct_path(predecessors, maze.end)
+            if to_check[neighbor] == "infinity" or to_check[neighbor] > distance + 1:
+                to_check[neighbor] = distance + 1
+                predecessors[neighbor] = position
+    # return "no path found"
+    return predecessors, reconstruct_path(predecessors, maze.end)
+
+
+def solve_maze2(maze):
+    to_check: dict[Coords, int | str] = {k: "infinity" for k in maze.height_map}
+    to_check[maze.start] = 0
+    predecessors: dict[Coords, Coords] = {}
+    return dijkstra2(maze, to_check, predecessors)
+
+
 if __name__ == "__main__":
     maze = parse_input("input.txt")
-    print(len(solve_maze(maze)) - 1)
+    # predecessors, path = solve_maze(maze)
+    predecessors, path = solve_maze(maze)
+    print(len(path) - 1)
+    print(len(predecessors))
+
+    inverted_maze = Maze(maze.height_map, maze.end, maze.start)
+    predecessors2, path2 = solve_maze2(inverted_maze)
+    print(len(path2) - 1)
+    print(len(predecessors2))
+    # assert path == path2[::-1]
+    assert path == path2[::-1]
+
+    all_as = set([k for k, v in inverted_maze.height_map.items() if v == "a"])
+    path_lenghts = []
+    for a in all_as:
+        path_length = len(reconstruct_path(predecessors2, a)) - 1
+        if path_length > 0:
+            path_lenghts.append(path_length)
+    print(path_lenghts)
+    print(min(path_lenghts))
