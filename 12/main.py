@@ -97,23 +97,13 @@ def get_valid_neighbors_2(maze, position):
 
 
 def dijkstra2(maze, to_check, predecessors):
-    # while set(to_check.values()) > set(["infinity"]):
-    # all_as = set([k for k, v in maze.height_map.items() if v == "a"])
-    # while len(predecessors) < len(maze.height_map) - 4000:
-    # while all_as.issubset(predecessors):
-    # while set(predecessors).issubset(all_as):
-    # while len(all_as.intersection(predecessors)) < len(all_as):
     while len({v: k for k, v in to_check.items()}) > 1:
         position, distance = popmin(to_check)
         neighbors = get_valid_neighbors_2(maze, position).intersection(to_check)
         for neighbor in neighbors:
-            # if neighbor == maze.end:
-            #     predecessors[maze.end] = position
-            #     return predecessors, reconstruct_path(predecessors, maze.end)
             if to_check[neighbor] == "infinity" or to_check[neighbor] > distance + 1:
                 to_check[neighbor] = distance + 1
                 predecessors[neighbor] = position
-    # return "no path found"
     return predecessors, reconstruct_path(predecessors, maze.end)
 
 
@@ -126,16 +116,11 @@ def solve_maze2(maze):
 
 if __name__ == "__main__":
     maze = parse_input("input.txt")
-    # predecessors, path = solve_maze(maze)
     predecessors, path = solve_maze(maze)
     print(len(path) - 1)
-    print(len(predecessors))
 
     inverted_maze = Maze(maze.height_map, maze.end, maze.start)
     predecessors2, path2 = solve_maze2(inverted_maze)
-    print(len(path2) - 1)
-    print(len(predecessors2))
-    # assert path == path2[::-1]
     assert path == path2[::-1]
 
     all_as = set([k for k, v in inverted_maze.height_map.items() if v == "a"])
@@ -144,5 +129,4 @@ if __name__ == "__main__":
         path_length = len(reconstruct_path(predecessors2, a)) - 1
         if path_length > 0:
             path_lenghts.append(path_length)
-    print(path_lenghts)
     print(min(path_lenghts))
