@@ -1,5 +1,5 @@
+from dataclasses import dataclass
 from enum import Enum, auto
-from itertools import zip_longest
 from typing import NamedTuple
 
 
@@ -76,6 +76,30 @@ def read_input(inputfile):
     return [Pair.from_string(ps) for ps in content]
 
 
+@dataclass
+class List:
+    data: list
+
+    def __eq__(self, other):
+        return self.data == other.data
+
+    def __lt__(self, other):
+        return Pair(self.data, other.data).is_ordered()
+
+
+def read_input_2(inputfile):
+    with open(inputfile) as stream:
+        lines = stream.read().split("\n")
+    lists = [eval(line) for line in lines if line != ""]
+    lists.append([[2]])
+    lists.append([[6]])
+    return [List(l) for l in lists]
+
+
 if __name__ == "__main__":
-    pairs = read_input("input.txt")
+    input_file = "input.txt"
+    pairs = read_input(input_file)
     print(ordered_indices_sum(pairs))
+    lists = read_input_2(input_file)
+    sorted_lists = sorted(lists)
+    print((sorted_lists.index(List([[2]])) + 1) * (sorted_lists.index(List([[6]])) + 1))
