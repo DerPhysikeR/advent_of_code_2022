@@ -74,18 +74,36 @@ def add_sand(rocks: set[Coords], sand: set[Coords]):
         return sand
 
 
-def fill_with_sand(rocks: set[Coords]):
+def fill_with_sand(rocks: set[Coords], sand_adder):
     sand = set()
     lenbefore = -1
     while len(sand) > lenbefore:
         lenbefore = len(sand)
-        sand = add_sand(rocks, sand)
+        sand = sand_adder(rocks, sand)
     return sand
+
+
+def add_sand_with_bottom(rocks: set[Coords], sand: set[Coords]):
+    if Coords(0, 500) in sand:
+        return sand
+    bottom = max(r.row for r in rocks) + 2
+    block = Coords(0, 500)
+    while True:
+        for target in get_fall_targets(block):
+            if target.row < bottom and target not in rocks and target not in sand:
+                block = target
+                break
+        else:
+            sand.add(block)
+            return sand
 
 
 if __name__ == "__main__":
     rock_paths = parse_rock_paths("input.txt")
     rocks = set().union(*[path_to_rocks(p) for p in rock_paths])
-    sand = fill_with_sand(rocks)
+    sand = fill_with_sand(rocks, sand_adder=add_sand)
+    print(game_to_str(rocks, sand))
+    print(len(sand))
+    sand = fill_with_sand(rocks, sand_adder=add_sand_with_bottom)
     print(game_to_str(rocks, sand))
     print(len(sand))
