@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 from typing import NamedTuple
 
 
 class C(NamedTuple):
     x: int
     y: int
+
+    def __add__(self, other):
+        return C(self.x + other.x, self.y + other.y)
 
 
 def parse_coords(string):
@@ -31,30 +36,6 @@ def get_neighbors(coords: C) -> set[C]:
     return set([C(x + 1, y), C(x, y + 1), C(x - 1, y), C(x, y - 1)])
 
 
-def generate_circumferences(coords: C, distance: int) -> set[C]:
-    cleared = [set(), set([coords])]
-    for _ in range(distance):
-        neighbors = set()
-        for c in cleared[-1]:
-            filtered_neighbors = get_neighbors(c) - cleared[-2]
-            for fn in filtered_neighbors:
-                neighbors.add(fn)
-        cleared.append(neighbors)
-    return set().union(*cleared)
-
-
-def calc_cleared_c(sensors_beacons: dict[C, C]) -> dict[C, set[C]]:
-    cleared: dict[C, set[C]] = {}
-    for sensor, beacon in sensors_beacons.items():
-        distance: int = dist(sensor, beacon)
-        cleared[sensor] = generate_circumferences(sensor, distance)
-    return cleared
-
-
-def count_cleared_c_in_line(lineidx: int, cleared_c: set[C]):
-    return sum(c.y == lineidx for c in cleared_c)
-
-
 def coord_is_cleared(coord: C, sensors_beacons: dict[C, C]) -> bool:
     for sensor, beacon in sensors_beacons.items():
         if coord == sensor or coord == beacon:
@@ -75,15 +56,6 @@ def cleared_in_line(y: int, sensors_beacons: dict[C, C]) -> int:
     )
 
 
-def calc_x_bounds(sensors_beacons: dict[C, C]) -> C:
-    sb = set(s for s in sensors_beacons.keys()).union(
-        b for b in sensors_beacons.values()
-    )
-    minx = min(c.x for c in sb)
-    maxx = max(c.x for c in sb)
-    return C(minx, maxx)
-
-
 def calc_x_bounds_for_sensor_beacon(y: int, sensor: C, beacon: C) -> tuple[int, int]:
     distance = dist(sensor, beacon)
     dx = distance - abs(y - sensor.y)
@@ -92,8 +64,77 @@ def calc_x_bounds_for_sensor_beacon(y: int, sensor: C, beacon: C) -> tuple[int, 
     return 0, 0
 
 
+def calc_tuning_frequency(coords: C) -> int:
+    return coords.x * 4_000_000 + coords.y
+
+
+def calc_height(sensor, beacon, coords):
+    sc = dist(sensor, coords)
+    sb = dist(sensor, beacon)
+    if sc > sb:
+        return 0
+    return sb - sc + 1
+
+
+def boundary_generator(s, beacon):
+    d = dist(s, beacon) + 1
+    top = C(s.x, s.y + d)
+    right = C(s.x + d, s.y)
+    bottom = C(s.x, s.y - d)
+    left = C(s.x - d, s.y)
+    point = top
+    while point != right:
+        yield point
+        point = point + C(1, -1)
+    while point != bottom:
+        yield point
+        point = point + C(-1, -1)
+    while point != left:
+        yield point
+        point = point + C(-1, 1)
+    while point != top:
+        yield point
+        point = point + C(1, 1)
+
+
+class Box(NamedTuple):
+    minxy: C
+    maxxy: C
+
+    def __contains__(self, coords: C):
+        inx = self.minxy.x <= coords.x <= self.maxxy.x
+        iny = self.minxy.y <= coords.y <= self.maxxy.y
+        return inx and iny
+
+
+def main(input_file: str, line_to_check: int, bb: C):
+    sensors_beacons = parse_input(input_file)
+    print(cleared_in_line(line_to_check, sensors_beacons))
+
+    def height_fun(c: C):
+        if c.x < 0 or c.x > bb.x or c.y < 0 or c.y > bb.y:
+            return 4_000_000
+        return sum(calc_height(s, b, c) for s, b in sensors_beacons.items())
+
+    b = False
+    for sensor, beacon in sensors_beacons.items():
+        print(sensor, beacon)
+        for point in boundary_generator(sensor, beacon):
+            if point not in Box(C(0, 0), bb):
+                continue
+            if height_fun(point) == 0:
+                print(point, height_fun(point), calc_tuning_frequency(point))
+                b = True
+                break
+        if b:
+            break
+
+
 if __name__ == "__main__":
     input_file = "input.txt"
-    sensors_beacons = parse_input(input_file)
+    # input_file = "test_input.txt"
     line_to_check = {"test_input.txt": 10, "input.txt": 2_000_000}[input_file]
-    print(cleared_in_line(line_to_check, sensors_beacons))
+    bounding_box = {"test_input.txt": C(20, 20), "input.txt": C(4_000_000, 4_000_000)}[
+        input_file
+    ]
+    main(input_file, line_to_check, bounding_box)
