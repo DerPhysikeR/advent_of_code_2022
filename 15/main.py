@@ -7,10 +7,10 @@ class C(NamedTuple):
     x: int
     y: int
 
-    def __add__(self, other):
+    def __add__(self, other: C):
         return C(self.x + other.x, self.y + other.y)
 
-    def dist(self, other):
+    def dist(self, other: C):
         return abs(self.x - other.x) + abs(self.y - other.y)
 
 
@@ -73,6 +73,11 @@ def calc_height(sensor, distance_to_beacon, coords):
         return 0
     return distance_to_beacon - sc + 1
 
+def iterate_point(start, direction, end):
+    point = start
+    while point != end:
+        yield point
+        point += direction
 
 def boundary_generator(s, beacon):
     d = s.dist(beacon) + 1
@@ -80,19 +85,10 @@ def boundary_generator(s, beacon):
     right = C(s.x + d, s.y)
     bottom = C(s.x, s.y - d)
     left = C(s.x - d, s.y)
-    point = top
-    while point != right:
-        yield point
-        point = point + C(1, -1)
-    while point != bottom:
-        yield point
-        point = point + C(-1, -1)
-    while point != left:
-        yield point
-        point = point + C(-1, 1)
-    while point != top:
-        yield point
-        point = point + C(1, 1)
+    yield from iterate_point(top, C(1, -1), right)
+    yield from iterate_point(right, C(-1, -1), bottom)
+    yield from iterate_point(bottom, C(-1, 1), left)
+    yield from iterate_point(left, C(1, 1), top)
 
 
 class Box(NamedTuple):
