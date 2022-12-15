@@ -114,12 +114,11 @@ def main(input_file: str, line_to_check: int, bb: C):
 
     b = False
     for sensor, beacon in sensors_beacons.items():
-        print(sensor, beacon)
         for point in boundary_generator(sensor, beacon):
             if point not in Box(C(0, 0), bb):
                 continue
             if height_fun(point) == 0:
-                print(point, height_fun(point), calc_tuning_frequency(point))
+                print(calc_tuning_frequency(point))
                 b = True
                 break
         if b:
@@ -127,8 +126,8 @@ def main(input_file: str, line_to_check: int, bb: C):
 
 
 if __name__ == "__main__":
+    print("Use pypy to execute this code, it will run dramatically faster.")
     input_file = "input.txt"
-    # input_file = "test_input.txt"
     line_to_check = {"test_input.txt": 10, "input.txt": 2_000_000}[input_file]
     bounding_box = {"test_input.txt": C(20, 20), "input.txt": C(4_000_000, 4_000_000)}[
         input_file
