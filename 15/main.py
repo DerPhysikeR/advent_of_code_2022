@@ -10,6 +10,9 @@ class C(NamedTuple):
     def __add__(self, other):
         return C(self.x + other.x, self.y + other.y)
 
+    def dist(self, other):
+        return abs(self.x - other.x) + abs(self.y - other.y)
+
 
 def parse_coords(string):
     xstr, ystr = string.split(", ")
@@ -27,10 +30,6 @@ def parse_input(fp):
     }
 
 
-def dist(c1, c2):
-    return abs(c1.x - c2.x) + abs(c1.y - c2.y)
-
-
 def get_neighbors(coords: C) -> set[C]:
     x, y = coords
     return set([C(x + 1, y), C(x, y + 1), C(x - 1, y), C(x, y - 1)])
@@ -40,7 +39,7 @@ def coord_is_cleared(coord: C, sensors_beacons: dict[C, C]) -> bool:
     for sensor, beacon in sensors_beacons.items():
         if coord == sensor or coord == beacon:
             return False
-        if dist(sensor, coord) <= dist(sensor, beacon):
+        if sensor.dist(coord) <= sensor.dist(beacon):
             return True
     return False
 
@@ -57,7 +56,7 @@ def cleared_in_line(y: int, sensors_beacons: dict[C, C]) -> int:
 
 
 def calc_x_bounds_for_sensor_beacon(y: int, sensor: C, beacon: C) -> tuple[int, int]:
-    distance = dist(sensor, beacon)
+    distance = sensor.dist(beacon)
     dx = distance - abs(y - sensor.y)
     if dx > 0:
         return sensor.x - dx, sensor.x + dx
@@ -68,16 +67,15 @@ def calc_tuning_frequency(coords: C) -> int:
     return coords.x * 4_000_000 + coords.y
 
 
-def calc_height(sensor, beacon, coords):
-    sc = dist(sensor, coords)
-    sb = dist(sensor, beacon)
-    if sc > sb:
+def calc_height(sensor, distance_to_beacon, coords):
+    sc = sensor.dist(coords)
+    if sc > distance_to_beacon:
         return 0
-    return sb - sc + 1
+    return distance_to_beacon - sc + 1
 
 
 def boundary_generator(s, beacon):
-    d = dist(s, beacon) + 1
+    d = s.dist(beacon) + 1
     top = C(s.x, s.y + d)
     right = C(s.x + d, s.y)
     bottom = C(s.x, s.y - d)
@@ -111,10 +109,12 @@ def main(input_file: str, line_to_check: int, bb: C):
     sensors_beacons = parse_input(input_file)
     print(cleared_in_line(line_to_check, sensors_beacons))
 
+    sensor_beacon_distances = {s: s.dist(b) for s, b in sensors_beacons.items()}
+
     def height_fun(c: C):
         if c.x < 0 or c.x > bb.x or c.y < 0 or c.y > bb.y:
             return 4_000_000
-        return sum(calc_height(s, b, c) for s, b in sensors_beacons.items())
+        return sum(calc_height(s, d, c) for s, d in sensor_beacon_distances.items())
 
     b = False
     for sensor, beacon in sensors_beacons.items():
