@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from itertools import cycle, islice
+from itertools import islice
 from typing import NamedTuple
 
 
@@ -83,6 +83,18 @@ def print_game(tower: Rock, rock: Rock):
     print("+-------+")
 
 
+def my_cycle(it: Iterable):
+    while True:
+        iterator = iter(it)
+        yield True, next(iterator)
+        for item in iterator:
+            yield False, item
+
+
+def clear_tower(tower: Rock, below: int) -> Rock:
+    return set([c for c in tower if c.y >= below])
+
+
 if __name__ == "__main__":
     with open("input.txt") as stream:
         jets = stream.read().strip()
@@ -95,18 +107,45 @@ if __name__ == "__main__":
         set([C(0, 0), C(1, 0), C(0, 1), C(1, 1)]),
     ]
 
-    directions = cycle(jets)
+    directions = my_cycle(jets)
+    old_top = 0
+    old_idx = 0
     top = 0
     tower = set()
-    for rock in islice(cycle(rocks), 2022):
+    for idx, (rock_cycle, rock) in enumerate(islice(my_cycle(rocks), 10_000)):
+        raw_rock = rock
         rock = move(rock, C(2, top + 4))
         old_rock = set()
         while old_rock != rock:
-            # print_game(tower, rock)
-            rock = move_to_side(rock, tower, next(directions))
+            if idx == 2022:
+                height_after_2022_rocks = top
+            if idx == 1723 + 1715 + 7:
+                height_of_end_sequence = top - 2637 - 2613
+            direction_cycle, direction = next(directions)
+            if direction_cycle:
+                dt = top - old_top
+                old_top = top
+                didx = idx - old_idx
+                old_idx = idx
+                print(f"{didx=}, {dt=}, {raw_rock=}, {idx=}, {top=}")
+            rock_cycle = False
+            rock = move_to_side(rock, tower, direction)
             old_rock = rock
             rock = move_down(rock, tower)
             # time.sleep(0.3)
         tower = tower.union(rock)
         top = maxy(tower)
-    print(top)
+        if idx % 100 == 0:
+            tower = clear_tower(tower, top - 1000)
+    """
+    # first cycle:
+      1723 rocks with height 2637
+    # every other cycle after that:
+      1715 rocks with height 2613
+    # length of end sequence is 7 with a height of 11
+    """
+    print(height_after_2022_rocks)
+    height_after_one_trillion_rocks = (
+        2637 + 2613 * ((1_000_000_000_000 - 1723) // 1715) + 11
+    )
+    print(height_after_one_trillion_rocks)
