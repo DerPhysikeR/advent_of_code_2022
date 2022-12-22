@@ -62,16 +62,30 @@ next (row, col) DU = (row - 1, col)
 next (row, col) DL = (row, col - 1)
 next (row, col) DD = (row + 1, col)
 
-getWrapAroundPoint :: Maze -> Position -> Point
-getWrapAroundPoint maze ((row, _), DR) = (row, minimum $ [c | ((r, c), _) <- M.toList maze, r == row])
-getWrapAroundPoint maze ((_, col), DU) = (maximum $ [r | ((r, c), _) <- M.toList maze, c == col], col)
-getWrapAroundPoint maze ((row, _), DL) = (row, maximum $ [c | ((r, c), _) <- M.toList maze, r == row])
-getWrapAroundPoint maze ((_, col), DD) = (minimum $ [r | ((r, c), _) <- M.toList maze, c == col], col)
+getWrapAroundPosition :: Maze -> Position -> Position
+getWrapAroundPosition maze ((row, col), DR)
+    | row <= 50 = ((151 - row, 100), DL)
+    | row > 50 && row <= 100 = ((50, row + 50), DU)
+    | row > 100 && row <= 150 = ((151 - row, 150), DL)
+    | row > 150 = ((150, row - 100), DU)
+getWrapAroundPosition maze ((row, col), DU)
+    | col <= 50 = ((50 + col, 51), DR)
+    | col > 50 && col <= 100 = ((100 + col, 1), DR)
+    | col > 100 = ((200, col - 100), DU)
+getWrapAroundPosition maze ((row, col), DL)
+    | row <= 50 = ((151 - row, 1), DR)
+    | row > 50 && row <= 100 = ((101, row - 50), DD)
+    | row > 100 && row <= 150 = ((151 - row, 51), DR)
+    | row > 150 = ((1, row - 100), DD)
+getWrapAroundPosition maze ((row, col), DD)
+    | col <= 50 = ((1, col + 100), DD)
+    | col > 50 && col <= 100 = ((col + 100, 50), DL)
+    | col > 100 = ((col - 50, 100), DL)
 
-getNextPoint :: Maze -> Position -> Point
-getNextPoint maze position@(point, dir)
-    | M.member nextPoint maze = nextPoint
-    | otherwise = getWrapAroundPoint maze position
+getNextPosition :: Maze -> Position -> Position
+getNextPosition maze position@(point, dir)
+    | M.member nextPoint maze = (nextPoint, dir)
+    | otherwise = getWrapAroundPosition maze position
     where nextPoint = next point dir
 
 getStartingPoint :: Maze -> Point
@@ -85,11 +99,11 @@ getStartingPoint maze = case M.lookup startingPoint maze of
 walk :: Maze -> Position -> Instruction -> Position
 walk maze (point, dir) (Rotate RL) = tr (point, csucc dir)
 walk maze (point, dir) (Rotate RR) = tr (point, cpred dir)
-walk maze pos@(point, dir) Walk = case M.lookup nextPoint maze of
+walk maze pos Walk = case M.lookup nextPoint maze of
     Nothing -> error $ "next point doesn't exist: " ++ show pos
-    Just Tile -> tr (nextPoint, dir)
+    Just Tile -> tr nextPosition
     Just Wall -> tr pos
-    where nextPoint = getNextPoint maze pos
+    where nextPosition@(nextPoint, nextDir) = getNextPosition maze pos
 
 main = do
   (maze, instructions) <- parseInput <$> TIO.readFile "input.txt"
