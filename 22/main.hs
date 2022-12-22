@@ -32,19 +32,19 @@ parseMaze t = M.fromList $ concat [
     | (rowIdx, row) <- enumerate lines]
     where lines = map T.unpack $ T.lines t
 
-parseInstructions :: String -> Instructions -> (String, Instructions)
-parseInstructions [] instr = ([], instr)
-parseInstructions ('R' : rest) instr = parseInstructions rest (instr ++ [Rotate RR])
-parseInstructions ('L' : rest) instr = parseInstructions rest (instr ++ [Rotate RL])
-parseInstructions ('\n' : rest) instr = (rest, instr)
-parseInstructions s@(x:xs) instr
-    | isDigit x = parseInstructions rest (instr ++ replicate num Walk)
+parseInstructions :: String -> Instructions
+parseInstructions [] = []
+parseInstructions ('\n' : _) = []
+parseInstructions ('R' : rest) = Rotate RR : parseInstructions rest
+parseInstructions ('L' : rest) = Rotate RL : parseInstructions rest
+parseInstructions s@(x:xs)
+    | isDigit x = replicate num Walk ++ parseInstructions rest
     | otherwise = error ("can't parse '" ++ [x] ++ "'")
   where
     (num, rest) = (read $ takeWhile isDigit s, dropWhile isDigit s)
 
 parseInput :: T.Text -> (Maze, Instructions)
-parseInput t = (parseMaze mazeText, snd $ parseInstructions (T.unpack instructionText) [])
+parseInput t = (parseMaze mazeText, parseInstructions (T.unpack instructionText))
   where
     (mazeText : instructionText : _) = T.splitOn "\n\n" t
 
@@ -53,6 +53,14 @@ calcPassword ((row, col), DR) = 1000 * row + 4 * col + 0
 calcPassword ((row, col), DD) = 1000 * row + 4 * col + 1
 calcPassword ((row, col), DL) = 1000 * row + 4 * col + 2
 calcPassword ((row, col), DU) = 1000 * row + 4 * col + 3
+
+getStartingPoint :: Maze -> Point
+getStartingPoint maze = case M.lookup startingPoint maze of
+    Nothing -> error "starting point not found"
+    Just _ -> startingPoint
+    where minRow = minimum [row | ((row, _), _) <- M.toList maze]
+          minCol = minimum [col | ((row, col), _) <- M.toList maze, row == minRow]
+          startingPoint = (minRow, minCol)
 
 next :: Point -> Direction -> Point
 next (row, col) DR = (row, col + 1)
@@ -71,14 +79,6 @@ getNextPosition maze position@(point, dir)
     | M.member nextPoint maze = (nextPoint, dir)
     | otherwise = getWrapAroundPosition maze position
     where nextPoint = next point dir
-
-getStartingPoint :: Maze -> Point
-getStartingPoint maze = case M.lookup startingPoint maze of
-    Nothing -> error "starting point not found"
-    Just _ -> startingPoint
-    where minRow = minimum [row | ((row, _), _) <- M.toList maze]
-          minCol = minimum [col | ((row, col), _) <- M.toList maze, row == minRow]
-          startingPoint = (minRow, minCol)
 
 walk :: Maze -> Position -> Instruction -> Position
 walk maze (point, dir) (Rotate RL) = (point, csucc dir)
