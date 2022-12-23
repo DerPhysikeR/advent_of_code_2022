@@ -59,7 +59,10 @@ def simplify(flow_dict, connection_dict) -> dict[str, dict[str, int]]:
 
 
 def value_path(
-    path: list[str], distance_dict: dict[str, dict[str, int]], flow_dict: dict[str, int]
+    path: list[str],
+    distance_dict: dict[str, dict[str, int]],
+    flow_dict: dict[str, int],
+    time: int,
 ) -> int:
     elapsed_time = 0
     iterator = iter(path)
@@ -68,27 +71,38 @@ def value_path(
     for to_valve in iterator:
         distance = distance_dict[from_valve][to_valve]
         elapsed_time += distance + 1
-        if elapsed_time > 30:
+        if elapsed_time > time:
             break
-        released_pressure += (30 - elapsed_time) * flow_dict[to_valve]
+        released_pressure += (time - elapsed_time) * flow_dict[to_valve]
         from_valve = to_valve
     return released_pressure
 
 
 def maximize_flow(
-    distance_dict: dict[str, dict[str, int]], flow_dict: dict[str, int], path=["AA"]
+    distance_dict: dict[str, dict[str, int]],
+    flow_dict: dict[str, int],
+    path=["AA"],
+    all_paths=[],
+    time=30,
 ):
     paths = sorted(
         [
             path + [valve]
             for valve in distance_dict[path[-1]]
-            if valve not in path and path_duration(path + [valve], distance_dict) < 30
+            if valve not in path and path_duration(path + [valve], distance_dict) < time
         ],
-        key=lambda p: -value_path(p, distance_dict, flow_dict),
+        key=lambda p: -value_path(p, distance_dict, flow_dict, time),
     )
     if not paths:
-        return value_path(path, distance_dict, flow_dict)
-    return max([maximize_flow(distance_dict, flow_dict, path) for path in paths])
+        value = value_path(path, distance_dict, flow_dict, time=time)
+        all_paths.append((tuple(path), value))
+        return value
+    return max(
+        [
+            maximize_flow(distance_dict, flow_dict, path, all_paths, time)
+            for path in paths
+        ]
+    )
 
 
 def path_duration(path, distance_dict):
@@ -101,8 +115,22 @@ def path_duration(path, distance_dict):
     return duration
 
 
+def find_best_path_combination(paths: list[tuple[tuple[str, ...], int]]) -> int:
+    compare_set = set(["AA"])
+    for start_idx, (path1, value1) in enumerate(paths, 1):
+        for path2, value2 in paths[start_idx:]:
+            if set(path1).intersection(set(path2)) == compare_set:
+                return value1 + value2
+    return 0
+
+
 if __name__ == "__main__":
     flow_dict, connection_dict = parse_input("input.txt")
     distances = simplify(flow_dict, connection_dict)
     flow = maximize_flow(distances, flow_dict)
     print(flow)
+
+    all_paths = []
+    maximize_flow(distances, flow_dict, all_paths=all_paths, time=26)
+    all_paths.sort(key=lambda x: x[1], reverse=True)
+    print(find_best_path_combination(all_paths))
