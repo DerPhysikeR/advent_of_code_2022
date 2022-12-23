@@ -61,9 +61,15 @@ toStrBoard board = concat [[if (row, col) `S.member` board then '#' else '.' | c
     where ((minRow, minCol), (maxRow, maxCol)) = getBoundingCorners board
           (rows, cols) = ([minRow..maxRow], [minCol..maxCol])
 
+takeWhileStateChanges :: [GameState] -> [GameState]
+takeWhileStateChanges (s1@(b1, _):s2@(b2, _):rest)
+    | b1 == b2 = [s1]
+    | b1 /= b2 = s1 : takeWhileStateChanges (s2:rest)
+
 main :: IO ()
 main = do
     board <- parseBoard <$> readFile "input.txt"
     let startGameState = (board, [North, South, West, East])
     let finalBoard = fst $ last $ take 11 $ iterate evolveGame startGameState
     print $ countFreeTiles finalBoard
+    print $ length $ takeWhileStateChanges $ iterate evolveGame startGameState
