@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from functools import cache
+from functools import cache, lru_cache
 from typing import NamedTuple
 
 
@@ -12,6 +12,26 @@ class Blueprint(NamedTuple):
     obsidian_robot_clay_cost: int
     geode_robot_ore_cost: int
     geode_robot_obsidian_cost: int
+
+    @property
+    @lru_cache
+    def max_ore_cost(self):
+        return max(
+            self.ore_robot_ore_cost,
+            self.clay_robot_ore_cost,
+            self.obsidian_robot_ore_cost,
+            self.geode_robot_ore_cost,
+        )
+
+    @property
+    @lru_cache
+    def max_clay_cost(self):
+        return self.obsidian_robot_clay_cost
+
+    @property
+    @lru_cache
+    def max_obsidian_cost(self):
+        return self.geode_robot_obsidian_cost
 
     def can_buy_ore_robot(self, balance: Balance) -> bool:
         return balance.ore >= self.ore_robot_ore_cost
@@ -129,14 +149,14 @@ def maximize_geodes(bp: Blueprint, remaining_time: int, f: Fleet, b: Balance):
     )
 
     options = []
-    if bp.can_buy_clay_robot(b):
+    if bp.can_buy_clay_robot(b) and (f.clay_robots < bp.max_clay_cost):
         options.append(bp.buy_clay_robot)
-    if bp.can_buy_ore_robot(b):
+    if bp.can_buy_ore_robot(b) and (f.ore_robots < bp.max_ore_cost):
         options.append(bp.buy_ore_robot)
+    if bp.can_buy_obsidian_robot(b) and (f.obsidian_robots < bp.max_obsidian_cost):
+        options.append(bp.buy_obsidian_robot)
     options.append(do_nothing)
 
-    if bp.can_buy_obsidian_robot(b):
-        options = [bp.buy_obsidian_robot]
     if bp.can_buy_geode_robot(b):
         options = [bp.buy_geode_robot]
 
@@ -150,7 +170,9 @@ def get_num_openend_geodes(blueprint: Blueprint) -> int:
 
 
 def calc_quality_level(blueprint: Blueprint) -> int:
-    return blueprint.id * get_num_openend_geodes(blueprint)
+    ql = blueprint.id * get_num_openend_geodes(blueprint)
+    print(f"{ql=}")
+    return ql
 
 
 def parse_input(filepath):
@@ -172,5 +194,5 @@ def parse_input(filepath):
 
 
 if __name__ == "__main__":
-    blueprints = parse_input("test_input.txt")
+    blueprints = parse_input("input.txt")
     print(sum(calc_quality_level(bp) for bp in blueprints))
