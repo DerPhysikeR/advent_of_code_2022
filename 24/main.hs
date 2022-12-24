@@ -103,12 +103,12 @@ reconstructPath node predecessors = case M.lookup node predecessors of
 aStar :: Valleys -> Point -> SearchState -> [Node]
 aStar valleys goal ss@(checked, predecessors, heap)
     | M.null heap = error "no path found"
-    | goal `elem` neighboringPoints = reconstructPath node predecessors ++ [(goal, 0)]
+    | goal `elem` neighboringPoints = reconstructPath node predecessors ++ [(goal, newT)]
     | otherwise = aStar valleys goal (newChecked, newPredecessors, newHeap)
     where (takenFromHeap, node@(point, time)) = getMinHeapEntry heap
           newChecked = S.insert node checked
           newT = time + 1
-          neighboringPoints = getFreeNeighbors point (valleys !! newT)
+          neighboringPoints = filter (\(r, _) -> r <= 25) $ getFreeNeighbors point (valleys !! newT)
           neighbors = filter (`S.notMember` newChecked) $ zip neighboringPoints (repeat newT)
           (newPredecessors, newHeap) = foldr (
               \n@(p, t) (pred, hp) -> case M.lookup n hp of
@@ -120,17 +120,31 @@ aStar valleys goal ss@(checked, predecessors, heap)
                               inserted = (M.insert n node pred, M.insert n newPrio hp)
               ) (predecessors, takenFromHeap) neighbors
 
-findPath :: Valley -> [Point]
-findPath valley = map fst nodePath
+findPathByStartingNode :: Valley -> Node -> Point -> [Node]
+findPathByStartingNode valley startNode endPoint = aStar valleys endPoint (S.empty, M.empty, heap)
     where valleys = iterate evolve valley
-          (_, (row, col)) = getMinMax valley
-          endPoint = (row, col - 1)
+          heap = M.singleton startNode 0
+
+findPath :: Valley -> [Point]
+findPath valley = map fst (findPathByStartingNode valley (startPoint, 0) endPoint)
+    where (_, (row, col)) = getMinMax valley
           startPoint = (-1, 0)
-          heap = M.singleton (startPoint, 0) 0
-          nodePath = aStar valleys endPoint (S.empty, M.empty, heap)
+          endPoint = (row, col - 1)
+
+findLongPath :: Valley -> [Point]
+findLongPath valley = map fst $ there ++ tail back ++ tail backAgain
+    where there = findPathByStartingNode valley startNode endPoint
+          back = findPathByStartingNode valley (last there) startPoint
+          backAgain = findPathByStartingNode valley (last back) endPoint
+          (_, (row, col)) = getMinMax valley
+          startPoint = (-1, 0)
+          startNode = (startPoint, 0)
+          endPoint = (row, col - 1)
 
 main :: IO ()
 main = do
     valley <- parseInput <$> readFile "input.txt"
     let path = findPath valley
     print $ length path - 1
+    let longPath = findLongPath valley
+    print $ length longPath - 1
