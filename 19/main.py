@@ -118,11 +118,20 @@ class Blueprint(NamedTuple):
         )
 
 
+
 class Balance(NamedTuple):
     ore: int = 0
     clay: int = 0
     obsidian: int = 0
     geodes: int = 0
+
+    def update_balance(self, fleet, times=1):
+        return Balance(
+            self.ore + times * fleet.ore_robots,
+            self.clay + times * fleet.clay_robots,
+            self.obsidian + times * fleet.obsidian_robots,
+            self.geodes + times * fleet.geode_robots,
+        )
 
 
 class Fleet(NamedTuple):
@@ -141,12 +150,7 @@ def maximize_geodes(bp: Blueprint, remaining_time: int, f: Fleet, b: Balance):
     if remaining_time <= 0:
         return b.geodes
 
-    nb = Balance(
-        b.ore + f.ore_robots,
-        b.clay + f.clay_robots,
-        b.obsidian + f.obsidian_robots,
-        b.geodes + f.geode_robots,
-    )
+    nb = b.update_balance(f)
 
     options = []
     if bp.can_buy_clay_robot(b) and (f.clay_robots < bp.max_clay_cost):
