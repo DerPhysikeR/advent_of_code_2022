@@ -118,7 +118,6 @@ class Blueprint(NamedTuple):
         )
 
 
-
 class Balance(NamedTuple):
     ore: int = 0
     clay: int = 0
@@ -145,9 +144,25 @@ def do_nothing(fleet: Fleet, balance: Balance) -> tuple[Fleet, Balance]:
     return fleet, balance
 
 
+max_geodes = 0
+
+
+def calc_max_reachable_geodes(f: Fleet, b: Balance, time_remaining: int) -> int:
+    return (
+        b.geodes
+        + f.geode_robots * time_remaining
+        + int(time_remaining * (time_remaining + 1) / 2)
+    )
+
+
 @cache
 def maximize_geodes(bp: Blueprint, remaining_time: int, f: Fleet, b: Balance):
+    global max_geodes
     if remaining_time <= 0:
+        if b.geodes > max_geodes:
+            max_geodes = b.geodes
+        return b.geodes
+    if calc_max_reachable_geodes(f, b, remaining_time) < max_geodes:
         return b.geodes
 
     nb = b.update_balance(f)
@@ -167,10 +182,12 @@ def maximize_geodes(bp: Blueprint, remaining_time: int, f: Fleet, b: Balance):
     return max(maximize_geodes(bp, remaining_time - 1, *buy(f, nb)) for buy in options)
 
 
-def get_num_openend_geodes(blueprint: Blueprint) -> int:
+def get_num_openend_geodes(blueprint: Blueprint, time=24) -> int:
     balance = Balance()
     fleet = Fleet()
-    return maximize_geodes(blueprint, 24, fleet, balance)
+    global max_geodes
+    max_geodes = 0
+    return maximize_geodes(blueprint, time, fleet, balance)
 
 
 def calc_quality_level(blueprint: Blueprint) -> int:
@@ -200,3 +217,8 @@ def parse_input(filepath):
 if __name__ == "__main__":
     blueprints = parse_input("input.txt")
     print(sum(calc_quality_level(bp) for bp in blueprints))
+    print(
+        get_num_openend_geodes(blueprints[0], 32)
+        * get_num_openend_geodes(blueprints[1], 32)
+        * get_num_openend_geodes(blueprints[2], 32)
+    )
